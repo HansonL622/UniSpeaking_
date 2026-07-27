@@ -7,7 +7,6 @@ import {
   CaretDown,
   CaretRight,
   Check,
-  CheckCircle,
   MagnifyingGlass,
   NotePencil,
   Pause,
@@ -19,6 +18,7 @@ import {
   X,
 } from "@phosphor-icons/react";
 import { NewtonsCradle } from "./NewtonsCradle.jsx";
+import { paths } from "./router.js";
 
 const cx = (...parts) => parts.filter(Boolean).join(" ");
 
@@ -120,15 +120,15 @@ function loadIeltsIntakeProfile() {
   }
 }
 
-function SimpleCta({ children, onClick, className, disabled = false, type = "button" }) {
+export function SimpleCta({ children, onClick, className, disabled = false, type = "button" }) {
   return <button type={type} className={cx("ielts-cta", className)} onClick={onClick} disabled={disabled}><span>{children}</span><ArrowRight weight="bold" /></button>;
 }
 
-function TrainingCta({ children, onClick, className, disabled = false, type = "button" }) {
+export function TrainingCta({ children, onClick, className, disabled = false, type = "button" }) {
   return <button type={type} className={cx("expanding-cta", "teacher-gradient-cta", "ielts-training-cta", className)} onClick={onClick} disabled={disabled}><span>{children}</span><ArrowRight weight="bold" /></button>;
 }
 
-function IeltsHeader({ title, subtitle, onBack, action, leadAction }) {
+export function IeltsHeader({ title, subtitle, onBack, action, leadAction }) {
   return (
     <header className="ielts-page-header">
       <div>{onBack && <button className="ielts-back" onClick={onBack}><ArrowLeft />返回</button>}{leadAction}<h1>{title}</h1>{subtitle && <p>{subtitle}</p>}</div>
@@ -179,7 +179,7 @@ function IeltsHome({ onChoose, onAssets, onBack, profile }) {
   const target = profile?.target || "7.0";
   return (
     <main className="ielts-page ielts-home">
-      <IeltsHeader onBack={onBack} title="IELTS 口语特训" subtitle="实战训练，持续复盘，看见进步" action={<TrainingCta className="ielts-home-assets-cta" onClick={onAssets}>查看学习资产</TrainingCta>} />
+      <IeltsHeader onBack={onBack} title="IELTS 口语特训" subtitle="实战训练，持续复盘，看见进步" action={<SimpleCta className="ielts-home-assets-cta" onClick={onAssets}>查看学习资产</SimpleCta>} />
       <section className="ielts-goal-row" aria-label="备考目标">
         <div><span>目标</span><strong>{target}</strong></div>
         <div><span>连续打卡</span><strong>12 <small>天</small></strong></div>
@@ -209,13 +209,6 @@ function IeltsHome({ onChoose, onAssets, onBack, profile }) {
         </div>
       </section>
 
-      <section className="ielts-recent">
-        <h2>近期表现</h2>
-        <div>
-          <article><span><CheckCircle weight="fill" /></span><p><small>最新完成</small><strong>Part 1 · 日常问答</strong><em>完成于 1 小时前 · 用时 12:38</em></p><TrainingCta className="ielts-review-cta" onClick={onAssets}>立即复盘</TrainingCta></article>
-          <article><span><NotePencil /></span><p><small>待生成报告</small><strong>Part 2 · 长陈述</strong><em>提交于 30 分钟前</em></p><div className="ielts-recent-loader"><NewtonsCradle size={30} className="newtons-cradle--inline" label="报告生成中" /><b>生成中</b></div></article>
-        </div>
-      </section>
     </main>
   );
 }
@@ -510,13 +503,12 @@ export function IeltsTrainingCenter({ route, onNavigate, onExit, onAssets }) {
   const [examiner, setExaminer] = useState(ieltsExaminers[0]);
   const [intakeProfile, setIntakeProfile] = useState(loadIeltsIntakeProfile);
 
-  const partPath = (nextPart) => `/ielts/${nextPart === "mock" ? "mock" : `part${nextPart.slice(1)}`}`;
-  const stepPath = (nextPart, selection, step) => nextPart === "mock"
-    ? `/ielts/mock/${step}`
-    : `${partPath(nextPart)}/${selection}/${step}`;
+  const partSegment = (nextPart) => nextPart === "mock" ? "mock" : `part${nextPart.slice(1)}`;
+  const partPath = (nextPart) => paths.ielts.part(partSegment(nextPart));
+  const stepPath = (nextPart, selection, step) => paths.ielts.step(partSegment(nextPart), selection, step);
 
   const choosePart = (nextPart, mode) => {
-    if (nextPart === "mock") { onNavigate("/ielts/mock/setup"); return; }
+    if (nextPart === "mock") { onNavigate(paths.ielts.step("mock", "random", "setup")); return; }
     if (mode === "recommended") { onNavigate(stepPath("p2", topicGroups.p2[0].id, "setup")); return; }
     onNavigate(partPath(nextPart));
   };
@@ -528,19 +520,19 @@ export function IeltsTrainingCenter({ route, onNavigate, onExit, onAssets }) {
   };
 
   if (screen === "home" && !intakeProfile) return <IeltsIntake onComplete={completeIntake} />;
-  if (screen === "topics") return <TopicBrowser part={part} onBack={() => onNavigate("/ielts")} onStart={openSetup} />;
-  if (screen === "setup") return <DeviceSetup part={part} topic={topic} random={random} onBack={() => onNavigate(part === "mock" ? "/ielts" : partPath(part))} onStart={start} />;
-  if (screen === "session") return <PracticeSession part={part} examiner={examiner} onExit={() => onNavigate("/ielts")} onComplete={() => onNavigate(stepPath(part, route?.selection || "random", "analysis"))} />;
-  if (screen === "analysis") return <AnalysisPending onHome={() => onNavigate("/ielts")} onReport={() => onNavigate(stepPath(part, route?.selection || "random", "report"))} />;
-  if (screen === "report") return <PracticeReport part={part} onHome={() => onNavigate("/ielts")} onRetry={() => onNavigate(stepPath(part, route?.selection || "random", "setup"))} onAssets={onAssets} />;
+  if (screen === "topics") return <TopicBrowser part={part} onBack={() => onNavigate(paths.ielts.root)} onStart={openSetup} />;
+  if (screen === "setup") return <DeviceSetup part={part} topic={topic} random={random} onBack={() => onNavigate(part === "mock" ? paths.ielts.root : partPath(part))} onStart={start} />;
+  if (screen === "session") return <PracticeSession part={part} examiner={examiner} onExit={() => onNavigate(paths.ielts.root)} onComplete={() => onNavigate(stepPath(part, route?.selection || "random", "analysis"))} />;
+  if (screen === "analysis") return <AnalysisPending onHome={() => onNavigate(paths.ielts.root)} onReport={() => onNavigate(stepPath(part, route?.selection || "random", "report"))} />;
+  if (screen === "report") return <PracticeReport part={part} onHome={() => onNavigate(paths.ielts.root)} onRetry={() => onNavigate(stepPath(part, route?.selection || "random", "setup"))} onAssets={onAssets} />;
   return <IeltsHome onChoose={choosePart} onAssets={onAssets} onBack={onExit} profile={intakeProfile} />;
 }
 
 const historyItems = [
-  { id: 1, type: "模考", title: "全真模考 · 第 3 次", date: "今天 14:20", result: "预估 6.5 · 波动 6.0–6.5", status: "已完成", duration: "13:42", scores: [78, 72, 75, 84], practicePath: null, reportPath: "/ielts/mock/report" },
-  { id: 2, type: "Part 2", title: "擅长做计划的人", date: "昨天 20:12", result: "内容组织较清晰", status: "已完成", duration: "03:16", scores: [82, 68, 76, 86], practicePath: "/ielts/part2/planner/setup", reportPath: "/ielts/part2/planner/report" },
-  { id: 3, type: "Part 1", title: "Work or Studies", date: "7 月 20 日", result: "回答完整度需要提升", status: "已完成", duration: "03:48", scores: [71, 74, 77, 83], practicePath: "/ielts/part1/study/setup", reportPath: "/ielts/part1/study/report" },
-  { id: 4, type: "Part 3", title: "科技与社会", date: "7 月 18 日", result: "观点有深度，连接仍可加强", status: "已完成", duration: "04:35", scores: [76, 70, 73, 81], practicePath: "/ielts/part3/technology/setup", reportPath: "/ielts/part3/technology/report" },
+  { id: 1, type: "模考", title: "全真模考 · 第 3 次", date: "今天 14:20", result: "预估 6.5 · 波动 6.0–6.5", status: "已完成", duration: "13:42", scores: [78, 72, 75, 84], practicePath: null, reportPath: paths.ielts.step("mock", "random", "report") },
+  { id: 2, type: "Part 2", title: "擅长做计划的人", date: "昨天 20:12", result: "内容组织较清晰", status: "已完成", duration: "03:16", scores: [82, 68, 76, 86], practicePath: paths.ielts.step("part2", "planner", "setup"), reportPath: paths.ielts.step("part2", "planner", "report") },
+  { id: 3, type: "Part 1", title: "Work or Studies", date: "7 月 20 日", result: "回答完整度需要提升", status: "已完成", duration: "03:48", scores: [71, 74, 77, 83], practicePath: paths.ielts.step("part1", "study", "setup"), reportPath: paths.ielts.step("part1", "study", "report") },
+  { id: 4, type: "Part 3", title: "科技与社会", date: "7 月 18 日", result: "观点有深度，连接仍可加强", status: "已完成", duration: "04:35", scores: [76, 70, 73, 81], practicePath: paths.ielts.step("part3", "technology", "setup"), reportPath: paths.ielts.step("part3", "technology", "report") },
 ];
 
 function AssetsOverview({ onTab }) {
@@ -577,7 +569,7 @@ function AssetsHistory({ onNavigate }) {
   return <section className="ielts-history-layout"><aside><header><h2>训练记录</h2><span>{items.length} 条</span></header>{items.map((item) => <button key={item.id} className={selected?.id === item.id ? "is-active" : ""} onClick={() => setSelected(item)}><small>{item.date} · {item.type}</small><strong>{item.title}</strong><span>{item.duration}</span></button>)}</aside>{selected ? <article><header><div><span>{selected.type}</span><h2>{selected.title}</h2><p>{selected.date} · 用时 {selected.duration}</p></div><div className="ielts-history-media-actions"><RecordingToggle key={selected.id} /><button className="asset-delete-button" type="button" aria-label="删除当前训练记录" onClick={deleteSelected}><Trash weight="bold" /><span>删除</span></button></div></header><section className="ielts-history-summary"><span>总体报告</span><h3>{selected.result}</h3><p>本次表达整体清楚，优先改善观点之间的过渡，并在回答中保持稳定、完整的展开。</p></section><section className="ielts-history-scores"><span>四项能力评分</span><div>{scoreRows.map((row, index) => <p key={row.label}><small>{row.label}</small><strong>{selected.scores[index]}<em>/100</em></strong></p>)}</div></section><footer><small>录音与本次总体报告将保留在训练记录中</small><button className="ielts-history-report" onClick={() => onNavigate(selected.reportPath)}>查看总体报告</button>{selected.practicePath && <TrainingCta className="ielts-history-practice" onClick={() => onNavigate(selected.practicePath)}>快速复练</TrainingCta>}</footer></article> : <div className="ielts-history-empty"><BookOpenText /><h2>暂无训练记录</h2><p>完成一次专项训练后，报告和录音会保存在这里。</p></div>}</section>;
 }
 
-function TrendLineChart({ values }) {
+export function TrendLineChart({ values }) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -663,7 +655,7 @@ function AssetsTrends() {
 export function IeltsAssets({ route, onNavigate, onBackToAssets, onInterviewAssets, onTraining }) {
   const availableTabs = ["overview", "history", "trends"];
   const tab = availableTabs.includes(route?.tab) ? route.tab : "overview";
-  const setTab = (nextTab) => onNavigate(nextTab === "overview" ? "/ielts/assets" : `/ielts/assets/${nextTab}`);
+  const setTab = (nextTab) => onNavigate(nextTab === "overview" ? paths.ielts.assets.root : paths.ielts.assets[nextTab]);
   const tabs = [{ id: "overview", label: "概览" }, { id: "history", label: "训练记录" }, { id: "trends", label: "能力趋势" }];
   const tabRef = useRef(null);
   const tabButtons = useRef({});
@@ -681,5 +673,5 @@ export function IeltsAssets({ route, onNavigate, onBackToAssets, onInterviewAsse
   }, [tab]);
 
   const otherAssetsButton = <div className="asset-module-menu ielts-other-assets"><button className="asset-module-menu__trigger" type="button" aria-label="切换学习资产模块" aria-haspopup="menu"><SquaresFour weight="bold" /><span>其他资产</span><CaretDown weight="bold" /></button><div className="asset-module-menu__popover" role="menu"><button type="button" role="menuitem" onClick={onBackToAssets}><BookOpenText /><span><strong>场景训练学习资产</strong><small>对话记录、纠错与场景复练</small></span><CaretRight /></button><button type="button" role="menuitem" onClick={onInterviewAssets}><Briefcase /><span><strong>英文面试学习资产</strong><small>历史报告与口语复盘</small></span><CaretRight /></button></div></div>;
-  return <main className={cx("ielts-page", "ielts-assets", tab === "overview" && "ielts-assets--overview", tab === "trends" && "ielts-assets--trends")}><IeltsHeader title="IELTS 学习资产" subtitle="集中查看每次训练记录、总体报告与原始录音。" action={<div className="ielts-assets-actions">{otherAssetsButton}<TrainingCta className="ielts-assets-header-cta" onClick={onTraining}>返回训练中心</TrainingCta></div>} /><nav className="ielts-asset-tabs" ref={tabRef}><span className={cx("ielts-asset-tab-indicator", tabIndicator.ready && "is-ready")} style={{ width: tabIndicator.width, transform: `translateX(${tabIndicator.x}px)` }} />{tabs.map((item) => <button ref={(node) => { tabButtons.current[item.id] = node; }} key={item.id} className={tab === item.id ? "is-active" : ""} onClick={() => setTab(item.id)}>{item.label}</button>)}</nav>{tab === "overview" && <AssetsOverview onTab={setTab} />}{tab === "history" && <AssetsHistory onNavigate={onNavigate} />}{tab === "trends" && <AssetsTrends />}</main>;
+  return <main className={cx("ielts-page", "ielts-assets", tab === "overview" && "ielts-assets--overview", tab === "trends" && "ielts-assets--trends")}><IeltsHeader title="IELTS 学习资产" subtitle="集中查看每次训练记录、总体报告与原始录音。" action={<div className="ielts-assets-actions">{otherAssetsButton}<SimpleCta className="ielts-assets-header-cta" onClick={onTraining}>返回训练中心</SimpleCta></div>} /><nav className="ielts-asset-tabs" ref={tabRef}><span className={cx("ielts-asset-tab-indicator", tabIndicator.ready && "is-ready")} style={{ width: tabIndicator.width, transform: `translateX(${tabIndicator.x}px)` }} />{tabs.map((item) => <button ref={(node) => { tabButtons.current[item.id] = node; }} key={item.id} className={tab === item.id ? "is-active" : ""} onClick={() => setTab(item.id)}>{item.label}</button>)}</nav>{tab === "overview" && <AssetsOverview onTab={setTab} />}{tab === "history" && <AssetsHistory onNavigate={onNavigate} />}{tab === "trends" && <AssetsTrends />}</main>;
 }

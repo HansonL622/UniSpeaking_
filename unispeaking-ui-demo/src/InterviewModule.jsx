@@ -1,24 +1,26 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
+  BookOpenText,
   Briefcase,
+  CaretDown,
   CaretRight,
   Check,
   CheckCircle,
-  Clock,
   FilePdf,
-  FileText,
-  Microphone,
-  MicrophoneSlash,
   Pause,
   Play,
+  SquaresFour,
+  Subtitles,
   UploadSimple,
   WarningCircle,
   X,
 } from "@phosphor-icons/react";
 import { teachers } from "./data.js";
 import { NewtonsCradle } from "./NewtonsCradle.jsx";
+import { IeltsHeader, SimpleCta, TrainingCta, TrendLineChart } from "./IeltsModule.jsx";
+import { paths } from "./router.js";
 
 const cx = (...parts) => parts.filter(Boolean).join(" ");
 
@@ -41,6 +43,12 @@ const transcript = [
   { who: "你", text: "In my last internship, our activation rate dropped after a redesign. I first separated new and returning users, then interviewed five users before deciding what to change." },
   { who: "AI 面试官", text: "What trade-off did you have to make, and how did you communicate it to the team?" },
   { who: "你", text: "We chose to postpone a visual improvement and fix onboarding clarity first. I showed the team the funnel data and explained why this was the fastest way to reduce risk." },
+];
+
+const interviewQuestions = [
+  "Could you walk me through a product decision you made with incomplete information?",
+  "What trade-off did you have to make, and how did you communicate it to the team?",
+  "What did you learn from the result, and what would you do differently next time?",
 ];
 
 function InterviewButton({ children, onClick, variant = "primary", disabled = false, type = "button", icon }) {
@@ -79,7 +87,7 @@ function InterviewInput({ onStart, onAssets, onBack }) {
     onStart();
   };
   return <main className="interview-page interview-input-page">
-    <InterviewHeader hideEyebrow onBack={onBack} title="英文模拟面试" subtitle="用真实经历回答真实问题，只评估你的英语口语表现。" action={<InterviewGradientButton onClick={onAssets}>查看学习资产</InterviewGradientButton>} />
+    <InterviewHeader hideEyebrow onBack={onBack} title="英文模拟面试" subtitle="用真实经历回答真实问题，只评估你的英语口语表现。" action={<SimpleCta className="ielts-home-assets-cta" onClick={onAssets}>查看学习资产</SimpleCta>} />
     <section className="interview-input-intro"><div><span>一次完整模拟</span><h2>把你的经历，练成清楚可信的英文回答</h2></div><dl><div><dt>01</dt><dd>上传简历</dd></div><div><dt>02</dt><dd>补充目标岗位</dd></div><div><dt>03</dt><dd>开始实时面试</dd></div></dl></section>
     <form className="interview-material-form" onSubmit={submit}>
       <section className="interview-form-section">
@@ -115,37 +123,68 @@ function InterviewPreparing({ onReady, onBack }) {
 }
 
 function InterviewLive({ onEnd }) {
-  const [paused, setPaused] = useState(false);
-  const [muted, setMuted] = useState(false);
-  const [confirming, setConfirming] = useState(false);
-  const [elapsed, setElapsed] = useState(412);
-  useEffect(() => { if (paused) return undefined; const timer = window.setInterval(() => setElapsed((value) => value + 1), 1000); return () => window.clearInterval(timer); }, [paused]);
-  const time = `${String(Math.floor(elapsed / 60)).padStart(2, "0")}:${String(elapsed % 60).padStart(2, "0")}`;
-  return <main className="interview-live-page">
-    <header><div><span className="interview-live-dot" />Realtime 已连接</div><h1>产品经理英文模拟面试</h1><time><Clock />{time} / 20:00</time></header>
-    <section className="interview-live-stage">
-      <aside><div className={cx("interviewer-portrait", paused && "is-paused")}><img src={teachers[3].image} alt="AI 面试官 David" /><span><i /><i /><i /></span></div><p>{paused ? "面试已暂停" : "正在聆听"}</p><strong>David</strong><small>AI Interviewer · American English</small></aside>
-      <article><div className="interview-current-question"><span>当前问题</span><h2>What trade-off did you have to make, and how did you communicate it to the team?</h2></div><div className="interview-transcript"><header><span>实时字幕</span><small>仅展示完整问题与回答</small></header>{transcript.map((item, index) => <div key={`${item.who}-${index}`} className={item.who === "你" ? "is-user" : ""}><span>{item.who}</span><p>{item.text}</p></div>)}</div></article>
+  const [questionIndex, setQuestionIndex] = useState(0);
+  const [subtitles, setSubtitles] = useState(true);
+  const [exitOpen, setExitOpen] = useState(false);
+  const [remaining, setRemaining] = useState(120);
+  const interviewer = teachers[3];
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setRemaining((value) => Math.max(0, value - 1)), 1000);
+    return () => window.clearInterval(timer);
+  }, [questionIndex]);
+
+  const nextQuestion = () => {
+    if (questionIndex >= interviewQuestions.length - 1) onEnd();
+    else {
+      setQuestionIndex((value) => value + 1);
+      setRemaining(120);
+    }
+  };
+  const time = `${String(Math.floor(remaining / 60)).padStart(2, "0")}:${String(remaining % 60).padStart(2, "0")}`;
+
+  return <main className={cx("conversation", "call", "ielts-call", subtitles && "call--subtitles", "interview-live-unified")}>
+    <div className="conversation__top ielts-call-top">
+      <div><strong>英文模拟面试</strong><span>产品经理 · 第 {questionIndex + 1} / {interviewQuestions.length} 题</span></div>
+      <button className="round-control ielts-call-exit" onClick={() => setExitOpen(true)} aria-label="退出面试"><X /></button>
+    </div>
+    <section className="call__stage">
+      <div className={cx("call-presence", subtitles && "call-presence--compact")}>
+        <div className={cx("portrait", subtitles ? "portrait--small" : "portrait--call", "ielts-call-portrait")}><img src={interviewer.image} alt={interviewer.name} /></div>
+        <div className={cx("listening-state", subtitles && "listening-state--compact")}>
+          <span className={cx("voice-wave", subtitles && "voice-wave--compact", "is-fallback")} aria-hidden="true">
+            {[.28, .52, .78, 1, .72, .48, .3].map((level, index) => <i key={index} className="voice-wave__bar" style={{ "--rest-level": level }} />)}
+          </span>
+          <time className="call-presence__time">{time}</time>
+          {!subtitles && <span>{interviewer.name} 正在提问</span>}
+        </div>
+      </div>
+      {subtitles && <div className="transcript ielts-call-transcript" aria-label="面试官问题字幕"><article className="transcript__line"><small>{interviewer.name}</small><p>{interviewQuestions[questionIndex]}</p></article></div>}
     </section>
-    <footer className="interview-live-controls"><button className={muted ? "is-alert" : ""} onClick={() => setMuted((value) => !value)}>{muted ? <MicrophoneSlash weight="fill" /> : <Microphone weight="fill" />}<span>{muted ? "麦克风已关闭" : "麦克风开启"}</span></button><button onClick={() => setPaused((value) => !value)}>{paused ? <Play weight="fill" /> : <Pause weight="fill" />}<span>{paused ? "继续面试" : "暂停"}</span></button><button className="is-end" onClick={() => setConfirming(true)}><X weight="bold" /><span>结束面试</span></button></footer>
-    {paused && <div className="interview-pause-overlay"><Pause weight="fill" /><h2>面试已暂停</h2><p>计时和麦克风音频已暂停。</p><InterviewButton onClick={() => setPaused(false)} icon={<Play weight="fill" />}>继续面试</InterviewButton></div>}
-    {confirming && <div className="interview-modal-backdrop"><section className="interview-confirm-modal"><span><WarningCircle weight="duotone" /></span><h2>确定结束本次模拟面试吗？</h2><p>结束后将生成本次口语表现报告。</p><div><InterviewButton variant="secondary" onClick={() => setConfirming(false)}>继续面试</InterviewButton><InterviewButton onClick={onEnd}>确认结束</InterviewButton></div></section></div>}
+    <footer className="call-controls ielts-call-controls">
+      <span className="ielts-recording-label"><i className="recording-dot" />正在录音</span>
+      <div className="ielts-call-control-buttons">
+        <button className={cx("round-control", subtitles && "is-on")} onClick={() => setSubtitles(!subtitles)} aria-label={subtitles ? "关闭字幕" : "开启字幕"}><Subtitles /></button>
+        <button className="round-control round-control--end" onClick={nextQuestion} aria-label={questionIndex >= interviewQuestions.length - 1 ? "完成面试" : "结束本题并进入下一题"}><ArrowRight weight="bold" /></button>
+      </div>
+      <p className="ielts-call-hint">{questionIndex >= interviewQuestions.length - 1 ? "回答完成后，点击按钮结束本次面试" : "回答完当前问题后，点击按钮进入下一题"}</p>
+    </footer>
+    {exitOpen && <div className="ielts-dialog-backdrop"><section className="ielts-dialog"><h2>退出当前面试？</h2><p>本次未完成的面试不会生成口语表现报告。</p><div><button onClick={() => setExitOpen(false)}>继续面试</button><button onClick={onEnd}>结束并退出</button></div></section></div>}
   </main>;
 }
 
-function InterviewFinalizing({ onReady }) {
-  useEffect(() => { const timer = window.setTimeout(onReady, 2600); return () => window.clearTimeout(timer); }, [onReady]);
-  return <main className="interview-page interview-finalizing"><section><CheckCircle weight="duotone" /><p className="interview-eyebrow">INTERVIEW COMPLETE</p><h1>面试已结束</h1><p>正在分析你的口语表现……</p><NewtonsCradle label="正在分析面试报告" /><small>最后一轮分析可能需要约 45 秒；等待期间不会显示临时分数。</small></section></main>;
+function InterviewFinalizing({ onHome, onReport }) {
+  return <main className="ielts-page ielts-pending interview-finalizing-unified">
+    <section><NewtonsCradle label="正在分析面试报告" /><p>ANALYSIS IN PROGRESS</p><h1>本次面试已保存</h1><p>AI 正在分析你的回答结构、语言表达与沟通清晰度。你可以先离开，报告完成后会出现在学习资产中。</p><div className="ielts-pending-actions"><button className="ielts-pending-home" onClick={onHome}>返回训练中心</button><button className="ielts-pending-report" onClick={onReport}>浏览本次报告<ArrowRight weight="bold" /></button></div></section>
+  </main>;
 }
 
-function InterviewReport({ partial = false, transcriptOnly = false, onHome, onRetry, onTranscript, onBack }) {
+function InterviewReport({ partial = false, transcriptOnly = false, onHome, onAssets, onBack }) {
   if (transcriptOnly) return <main className="interview-page interview-report-page"><InterviewHeader compact onBack={onBack} title="完整问答记录" subtitle="本页保留面试中的原始完整字幕，不添加纠错或评分标记。" /><section className="interview-full-transcript">{transcript.map((item, index) => <article key={`${item.who}-${index}`}><span>{String(index + 1).padStart(2, "0")}</span><div><small>{item.who}</small><p>{item.text}</p></div></article>)}</section></main>;
-  return <main className="interview-page interview-report-page"><InterviewHeader compact title="模拟面试报告" subtitle="Product Manager · Consumer Technology" action={<div className="interview-report-actions"><InterviewButton variant="secondary" onClick={onHome}>返回首页</InterviewButton><InterviewButton onClick={onRetry}>再练一次</InterviewButton></div>} />
-    {partial && <div className="interview-partial-banner"><WarningCircle weight="fill" /><div><strong>部分评分暂未完成</strong><span>已展示当前可用的分析结果，缺失维度不会以 0 分替代。</span></div></div>}
-    <section className="interview-report-summary"><article><span>口语综合分数</span><strong>{partial ? "—" : "82"}<small>{partial ? "结果收集中" : "/ 100"}</small></strong><p>{partial ? "综合分需等待全部维度完成" : "表达清楚可信，结构化回答是本次优势。"}</p></article><dl><div><dt>面试时长</dt><dd>18:42</dd></div><div><dt>完成问题</dt><dd>6 道</dd></div><div><dt>训练时间</dt><dd>2026.07.22</dd></div><div><dt>重点建议</dt><dd>语法控制</dd></div></dl></section>
-    <section className="interview-dimensions"><header><h2>五维评分与证据</h2><p>评分只反映本次英语口语表现，不代表岗位匹配或录用判断。</p></header>{dimensions.map((item, index) => { const missing = partial && index > 2; return <article key={item.label} className={missing ? "is-missing" : ""}><div><span>{item.label}</span><small>权重 {item.weight}</small></div><strong>{missing ? "暂未获得结果" : item.score}</strong><div className="interview-score-track"><i style={{ width: missing ? "0%" : `${item.score}%` }} /></div><p>{missing ? "该维度仍在生成中。" : item.note}</p></article>; })}</section>
-    <section className="interview-training-advice"><article><span>可复用高分表达</span><h2>Make a trade-off based on evidence</h2><blockquote>“We chose to postpone the visual improvement and fix onboarding clarity first.”</blockquote><p>适合回答资源取舍、优先级和跨团队协作类问题。</p></article><article><span>结合真实经历的示范回答</span><h2>把结论提前，再解释判断依据</h2><p>I had to choose between polishing the interface and fixing activation. I prioritized activation because our interviews and funnel data pointed to a clarity problem...</p><button>展开完整示范回答<CaretRight /></button></article></section>
-    <footer className="interview-report-footer"><button onClick={onTranscript}><FileText />查看完整问答记录<ArrowRight /></button><small>训练建议不参与综合分数计算</small></footer>
+  return <main className="ielts-page ielts-report ielts-report--single interview-report-unified">
+    <IeltsHeader onBack={onHome} title="英文模拟面试 · 本次表现" subtitle="报告只反映本次英语口语表现，不代表岗位匹配或录用判断。" action={<button className="ielts-report-assets" onClick={onAssets}><BookOpenText />查看学习资产</button>} />
+    <section className="ielts-report-summary interview-total-score"><div><span>口语综合分数</span><h2>{partial ? "—" : "82"}<small>{partial ? "结果收集中" : "/100"}</small></h2><p>{partial ? "综合分需等待全部维度完成。" : "表达清楚可信，能够先给结论，再用背景、行动和结果展开。"}</p></div><div><span>本次概况</span><ol><li>面试时长 18:42</li><li>完成 6 道问题</li><li>重点提升：语法控制</li></ol></div></section>
+    <section className="ielts-score-list interview-five-score-list"><h2>五项能力反馈</h2>{dimensions.map((item, index) => { const missing = partial && index > 2; return <article key={item.label}><strong>{item.label}</strong><span className="ielts-score-value">{missing ? "—" : item.score}<small>{missing ? "待生成" : "/100"}</small></span><p>{missing ? "该维度仍在生成中。" : item.note}</p></article>; })}</section>
   </main>;
 }
 
@@ -156,28 +195,106 @@ function InterviewFailure({ kind, onRetry, onHome }) {
 
 export function InterviewTrainingCenter({ route, onNavigate, onExit, onAssets }) {
   const screen = route?.screen || "input";
-  if (screen === "preparing") return <InterviewPreparing onBack={() => onNavigate("/interview")} onReady={() => onNavigate("/interview/live")} />;
-  if (screen === "live") return <InterviewLive onEnd={() => onNavigate("/interview/finalizing")} />;
-  if (screen === "finalizing") return <InterviewFinalizing onReady={() => onNavigate("/interview/report")} />;
-  if (screen === "report") return <InterviewReport partial={route?.result === "partial"} onHome={() => onNavigate("/interview")} onRetry={() => onNavigate("/interview")} onTranscript={() => onNavigate("/interview/report/transcript")} />;
-  if (screen === "transcript") return <InterviewReport transcriptOnly onBack={() => onNavigate("/interview/report")} />;
-  if (["error", "report-failed"].includes(screen)) return <InterviewFailure kind={screen} onHome={() => onNavigate("/interview")} onRetry={() => onNavigate("/interview")} />;
-  return <InterviewInput onStart={() => onNavigate("/interview/preparing")} onAssets={onAssets} onBack={onExit} />;
+  if (screen === "preparing") return <InterviewPreparing onBack={() => onNavigate(paths.interview.root)} onReady={() => onNavigate(paths.interview.live)} />;
+  if (screen === "live") return <InterviewLive onEnd={() => onNavigate(paths.interview.finalizing)} />;
+  if (screen === "finalizing") return <InterviewFinalizing onHome={() => onNavigate(paths.interview.root)} onReport={() => onNavigate(paths.interview.report)} />;
+  if (screen === "report") return <InterviewReport partial={route?.result === "partial"} onHome={() => onNavigate(paths.interview.root)} onAssets={onAssets} />;
+  if (screen === "transcript") return <InterviewReport transcriptOnly onBack={() => onNavigate(paths.interview.report)} />;
+  if (["error", "report-failed"].includes(screen)) return <InterviewFailure kind={screen} onHome={() => onNavigate(paths.interview.root)} onRetry={() => onNavigate(paths.interview.root)} />;
+  return <InterviewInput onStart={() => onNavigate(paths.interview.preparing)} onAssets={onAssets} onBack={onExit} />;
 }
 
-function InterviewAssetsOverview({ onOpen, onTraining }) {
-  return <><section className="interview-assets-summary"><article><span>累计模拟</span><strong>12 <small>次</small></strong><p>最近一次：今天 14:20</p></article><article><span>当前口语均分</span><strong>82</strong><p>最近 3 次提升 6 分</p></article><article><span>首要提升项</span><strong>语法控制</strong><p>复杂句冠词与时态</p></article><InterviewButton onClick={onTraining}>开始新面试</InterviewButton></section><section className="interview-assets-recent"><header><div><span>最近报告</span><h2>用每一次真实回答，形成下一次训练重点</h2></div></header>{interviewHistory.map((item) => <button key={item.id} onClick={() => onOpen(item.id)}><span>{item.date}</span><div><strong>{item.role}</strong><small>{item.company} · {item.duration}</small></div><p>{item.score ?? "—"}<small>{item.score ? "分" : "部分"}</small></p><em>{item.focus}</em><CaretRight /></button>)}</section></>;
+const interviewAssetRecords = interviewHistory.map((item, index) => ({
+  ...item,
+  scores: index === 0 ? [84, 86, 76, 82] : index === 1 ? [78, 80, 72, 77] : [75, 73, 70, 79],
+}));
+
+function InterviewAssetsOverview({ onTab }) {
+  const activity = [
+    { day: "周四", minutes: 12 },
+    { day: "周五", minutes: 18 },
+    { day: "周六", minutes: 0 },
+    { day: "周日", minutes: 20 },
+    { day: "周一", minutes: 14 },
+    { day: "周二", minutes: 16 },
+    { day: "今天", minutes: 19 },
+  ];
+  return <section className="ielts-overview-dashboard">
+    <section className="ielts-asset-hero">
+      <div><span>最近一次完整面试</span><h2>口语表现 82</h2><p>产品经理 · AI 口语训练评估，不代表岗位匹配或录用判断</p></div>
+      <div><span>重点提升项</span><strong>语法控制</strong><small>复杂句准确度</small></div>
+      <TrainingCta className="ielts-asset-gradient-action" onClick={() => onTab("trends")}>查看能力趋势</TrainingCta>
+    </section>
+    <section className="ielts-weekly-activity">
+      <header><div><span>近七天训练时长</span><h2>99 <small>分钟</small></h2><p>共完成 6 次训练，较上周增加 21 分钟</p></div><div className="ielts-weekly-stats"><p><strong>6</strong><small>活跃天数</small></p><p><strong>17</strong><small>日均分钟</small></p><p><strong>3</strong><small>岗位覆盖</small></p></div></header>
+      <div className="ielts-weekly-bars">{activity.map((item) => <span key={item.day}><i style={{ height: `${Math.max(6, (item.minutes / 20) * 100)}%` }} className={item.minutes === 0 ? "is-empty" : ""} /><strong>{item.minutes}</strong><small>{item.day}</small></span>)}</div>
+    </section>
+    <section className="ielts-asset-recent"><header><h2>最近训练</h2></header>{interviewAssetRecords.map((item) => <article key={item.id}><span>面试</span><div><strong>{item.role}</strong><small>{item.date} · {item.duration}</small></div><p>{item.score ? `口语表现 ${item.score}` : "部分结果"}</p></article>)}</section>
+  </section>;
 }
 
-function InterviewAssetsHistory({ onOpen }) {
-  const [filter, setFilter] = useState("全部");
-  const items = useMemo(() => filter === "全部" ? interviewHistory : interviewHistory.filter((item) => item.status === filter), [filter]);
-  return <section className="interview-assets-history"><header><div><h2>模拟面试记录</h2><p>报告只评估英语口语表现，不提供岗位排名或录用建议。</p></div><div>{["全部", "报告已生成", "部分结果"].map((item) => <button key={item} className={filter === item ? "is-active" : ""} onClick={() => setFilter(item)}>{item}</button>)}</div></header>{items.map((item) => <button className="interview-history-row" key={item.id} onClick={() => onOpen(item.id)}><span><Briefcase /></span><div><strong>{item.role}</strong><small>{item.company} · {item.date}</small></div><p>{item.duration}</p><em>{item.status}</em><b>{item.score ?? "—"}</b><CaretRight /></button>)}</section>;
+function InterviewRecordingToggle() {
+  const [playing, setPlaying] = useState(false);
+  return <label className="ielts-recording-toggle" title={playing ? "暂停录音" : "播放录音"}>
+    <input type="checkbox" checked={playing} onChange={(event) => setPlaying(event.target.checked)} />
+    <Play className="play" weight="fill" />
+    <Pause className="pause" weight="fill" />
+    <span>{playing ? "暂停录音" : "播放录音"}</span>
+  </label>;
 }
 
-export function InterviewAssets({ route, onNavigate, onBackToAssets, onTraining }) {
-  const tab = route?.tab || "overview";
-  const openReport = (id) => onNavigate(`/interview/assets/${id}`);
-  if (route?.record) return <InterviewReport partial={route.record === "operations"} onHome={() => onNavigate("/interview/assets/history")} onRetry={onTraining} onTranscript={() => onNavigate("/interview/report/transcript")} />;
-  return <main className="interview-page interview-assets-page"><InterviewHeader title="英文面试学习资产" subtitle="查看历史评分、证据与可复用表达，把报告变成下一次训练计划。" action={<div className="interview-assets-actions"><button onClick={onTraining}>返回训练中心</button><button onClick={onBackToAssets}>其他资产<ArrowRight /></button></div>} /><nav className="interview-assets-tabs"><button className={tab === "overview" ? "is-active" : ""} onClick={() => onNavigate("/interview/assets")}>概览</button><button className={tab === "history" ? "is-active" : ""} onClick={() => onNavigate("/interview/assets/history")}>面试记录 <span>12</span></button></nav>{tab === "history" ? <InterviewAssetsHistory onOpen={openReport} /> : <InterviewAssetsOverview onOpen={openReport} onTraining={onTraining} />}</main>;
+function InterviewAssetsHistory({ onOpen, onTraining }) {
+  const [selected, setSelected] = useState(interviewAssetRecords[0]);
+  const scoreLabels = ["流利度", "逻辑与连贯", "语法控制", "发音可懂度"];
+  return <section className="ielts-history-layout">
+    <aside><header><h2>面试记录</h2><span>{interviewAssetRecords.length} 条</span></header>{interviewAssetRecords.map((item) => <button key={item.id} className={selected.id === item.id ? "is-active" : ""} onClick={() => setSelected(item)}><small>{item.date} · 英文面试</small><strong>{item.role}</strong><span>{item.duration}</span></button>)}</aside>
+    <article>
+      <header><div><span>{selected.company}</span><h2>{selected.role}</h2><p>{selected.date} · 用时 {selected.duration}</p></div><div className="ielts-history-media-actions"><InterviewRecordingToggle key={selected.id} /></div></header>
+      <section className="ielts-history-summary"><span>总体报告</span><h3>{selected.score ? `口语表现 ${selected.score}` : "部分结果"}</h3><p>本次回答整体清楚，能够先给结论再解释判断依据；下一步优先改善复杂句中的语法稳定性。</p></section>
+      <section className="ielts-history-scores"><span>四项能力评分</span><div>{scoreLabels.map((label, index) => <p key={label}><small>{label}</small><strong>{selected.scores[index]}<em>/100</em></strong></p>)}</div></section>
+      <footer><small>录音与本次总体报告将保留在面试记录中</small><button className="ielts-history-report" onClick={() => onOpen(selected.id)}>查看总体报告</button><TrainingCta className="ielts-history-practice" onClick={onTraining}>快速复练</TrainingCta></footer>
+    </article>
+  </section>;
+}
+
+function InterviewAssetsTrends() {
+  const scoreLabels = ["流利度", "逻辑与连贯", "语法控制", "发音可懂度"];
+  const averages = [81, 84, 74, 82];
+  return <section className="ielts-trends-dashboard">
+    <section className="ielts-trend-summary"><div><span>面试表现趋势</span><h2>82</h2><p>最近 5 次训练提升 8 分</p></div><div className="ielts-trend-chart-wrap"><TrendLineChart values={[5.6, 5.9, 6.1, 6.3, 6.5]} /><small>第 1 次</small><small>最近一次</small></div><div><span>训练状态</span><strong>连续 6 天</strong><p>本周已完成 3 次训练</p></div></section>
+    <section className="ielts-dimension-trends"><h2>四项能力平均分</h2>{scoreLabels.map((label, index) => <article key={label}><span>{label}</span><strong className="ielts-dimension-score">{averages[index]}<small>/100</small></strong><div><i style={{ width: `${averages[index]}%` }} /></div><strong>{["稳定", "优势", "优先提升", "稳定"][index]}</strong></article>)}</section>
+    <section className="ielts-part-trends"><article><span>结构表达</span><strong>结论前置更稳定</strong><p>近 4 次回答中，STAR 结构完整度提升 31%。</p></article><article><span>语言控制</span><strong>复杂句仍需稳定</strong><p>建议减少过长句，并加强冠词与时态检查。</p></article><article><span>面试表达</span><strong>业务词汇更准确</strong><p>取舍、协作与结果类表达已形成可复用模板。</p></article></section>
+  </section>;
+}
+
+export function InterviewAssets({ route, onNavigate, onBackToAssets, onIeltsAssets, onTraining }) {
+  const availableTabs = ["overview", "history", "trends"];
+  const tab = availableTabs.includes(route?.tab) ? route.tab : "overview";
+  const setTab = (nextTab) => onNavigate(nextTab === "overview" ? paths.interview.assets.root : paths.interview.assets[nextTab]);
+  const tabs = [{ id: "overview", label: "概览" }, { id: "history", label: "面试记录" }, { id: "trends", label: "能力趋势" }];
+  const tabRef = useRef(null);
+  const tabButtons = useRef({});
+  const [tabIndicator, setTabIndicator] = useState({ x: 0, width: 0, ready: false });
+  const openReport = (id) => onNavigate(paths.interview.assets.record(id));
+
+  useEffect(() => {
+    const updateIndicator = () => {
+      const activeButton = tabButtons.current[tab];
+      if (!tabRef.current || !activeButton) return;
+      setTabIndicator({ x: activeButton.offsetLeft, width: activeButton.offsetWidth, ready: true });
+    };
+    updateIndicator();
+    window.addEventListener("resize", updateIndicator);
+    return () => window.removeEventListener("resize", updateIndicator);
+  }, [tab]);
+
+  if (route?.record) return <InterviewReport partial={route.record === "operations"} onHome={() => onNavigate(paths.interview.assets.history)} onAssets={() => onNavigate(paths.interview.assets.root)} />;
+  const otherAssetsButton = <div className="asset-module-menu ielts-other-assets"><button className="asset-module-menu__trigger" type="button" aria-label="切换学习资产模块" aria-haspopup="menu"><SquaresFour weight="bold" /><span>其他资产</span><CaretDown weight="bold" /></button><div className="asset-module-menu__popover" role="menu"><button type="button" role="menuitem" onClick={onBackToAssets}><BookOpenText /><span><strong>场景训练学习资产</strong><small>对话记录、纠错与场景复练</small></span><CaretRight /></button><button type="button" role="menuitem" onClick={onIeltsAssets}><span className="asset-module-ielts-mark">IELTS</span><span><strong>IELTS 学习资产</strong><small>专项训练、模考与能力趋势</small></span><CaretRight /></button></div></div>;
+  return <main className={cx("ielts-page", "ielts-assets", "interview-assets-unified", tab === "overview" && "ielts-assets--overview", tab === "trends" && "ielts-assets--trends")}>
+    <IeltsHeader title="英文面试学习资产" subtitle="集中查看每次面试记录、总体报告与原始录音。" action={<div className="ielts-assets-actions">{otherAssetsButton}<SimpleCta className="ielts-assets-header-cta" onClick={onTraining}>返回训练中心</SimpleCta></div>} />
+    <nav className="ielts-asset-tabs" ref={tabRef}><span className={cx("ielts-asset-tab-indicator", tabIndicator.ready && "is-ready")} style={{ width: tabIndicator.width, transform: `translateX(${tabIndicator.x}px)` }} />{tabs.map((item) => <button ref={(node) => { tabButtons.current[item.id] = node; }} key={item.id} className={tab === item.id ? "is-active" : ""} onClick={() => setTab(item.id)}>{item.label}</button>)}</nav>
+    {tab === "overview" && <InterviewAssetsOverview onTab={setTab} />}
+    {tab === "history" && <InterviewAssetsHistory onOpen={openReport} onTraining={onTraining} />}
+    {tab === "trends" && <InterviewAssetsTrends />}
+  </main>;
 }
