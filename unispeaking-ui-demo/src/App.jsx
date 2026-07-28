@@ -25,6 +25,7 @@ import {
   PaperPlaneTilt,
   Pause,
   Password,
+  PencilSimple,
   PhoneDisconnect,
   Play,
   Plus,
@@ -305,7 +306,7 @@ function Splash({ onStart, onLogin }) {
   );
 }
 
-function Auth({ mode: initialMode, onBack, onSuccess }) {
+function Auth({ mode: initialMode, nickname, onNicknameChange, onBack, onSuccess }) {
   const [mode, setMode] = useState(initialMode || "signup");
   const [showPassword, setShowPassword] = useState(false);
   const [sent, setSent] = useState(false);
@@ -335,6 +336,7 @@ function Auth({ mode: initialMode, onBack, onSuccess }) {
         <button className="back-link" onClick={onBack}><ArrowLeft />返回</button>
         <div className="auth-panel__heading"><h1>{mode === "signup" ? "创建账号" : "欢迎回来"}</h1><p>{mode === "signup" ? "用邮箱注册，开始你的口语练习。" : "继续上一次的学习进度。"}</p></div>
         <form onSubmit={(event) => { event.preventDefault(); mode === "signup" ? setSent(true) : onSuccess(); }}>
+          {mode === "signup" && <label>昵称<input type="text" value={nickname} onChange={(event) => onNicknameChange(event.target.value)} placeholder="填写你的昵称" maxLength={20} autoComplete="nickname" required /></label>}
           <label>邮箱<input type="email" placeholder="name@example.com" required /></label>
           <label>密码<span className="password-field"><input type={showPassword ? "text" : "password"} placeholder="至少 8 位字符" required /><button type="button" aria-label={showPassword ? "隐藏密码" : "显示密码"} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeSlash /> : <Eye />}</button></span></label>
           {mode === "login" && <button type="button" className="forgot-link">忘记密码？</button>}
@@ -1182,9 +1184,64 @@ function Assets({ onPractice, onRestart, onIelts, onInterview, onOpenRecord, onC
   );
 }
 
-function Profile({ section, setSection, teacher, speed, level, onSettingsChange, onLogout }) {
+function Profile({ section, setSection, teacher, speed, level, nickname, onNicknameChange, onSettingsChange, onLogout }) {
+  const [editingNickname, setEditingNickname] = useState(false);
+  const [nicknameDraft, setNicknameDraft] = useState(nickname);
+  const startEditingNickname = () => {
+    setNicknameDraft(nickname);
+    setEditingNickname(true);
+  };
+  const cancelEditingNickname = () => {
+    setNicknameDraft(nickname);
+    setEditingNickname(false);
+  };
+  const saveNickname = () => {
+    const nextNickname = nicknameDraft.trim();
+    if (!nextNickname) return;
+    onNicknameChange(nextNickname);
+    setEditingNickname(false);
+  };
   return (
-    <main className="profile-layout"><aside className="profile-nav"><div className="profile-user"><img src={teacher.image} alt="Yufan" /><span><strong>Yufan</strong><small>yufan@example.com</small></span></div><nav><button className={section === "profile" ? "is-active" : ""} onClick={() => setSection("profile")}><User />个人概览</button><button className={section === "membership" ? "is-active" : ""} onClick={() => setSection("membership")}><Crown />会员权益</button><button className={section === "settings" ? "is-active" : ""} onClick={() => setSection("settings")}><SlidersHorizontal />助手设置</button></nav><button className="logout" onClick={onLogout}><SignOut />退出登录</button></aside><section className="profile-content">{section === "profile" && <Overview />}{section === "membership" && <Membership />}{section === "settings" && <Settings teacher={teacher} speed={speed} level={level} onSettingsChange={onSettingsChange} />}</section></main>
+    <main className="profile-layout">
+      <aside className="profile-nav">
+        <div className={cx("profile-user", editingNickname && "is-editing")}>
+          <img src={teacher.image} alt={nickname} />
+          <div className="profile-user__details">
+            {editingNickname ? (
+              <div className="profile-user__editor">
+                <input
+                  type="text"
+                  value={nicknameDraft}
+                  onChange={(event) => setNicknameDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") saveNickname();
+                    if (event.key === "Escape") cancelEditingNickname();
+                  }}
+                  maxLength={20}
+                  aria-label="修改昵称"
+                  autoFocus
+                />
+                <button type="button" aria-label="保存昵称" disabled={!nicknameDraft.trim()} onClick={saveNickname}><Check weight="bold" /></button>
+                <button type="button" aria-label="取消修改昵称" onClick={cancelEditingNickname}><X /></button>
+              </div>
+            ) : (
+              <span className="profile-user__name">
+                <strong>{nickname}</strong>
+                <button type="button" aria-label="修改昵称" onClick={startEditingNickname}><PencilSimple /></button>
+              </span>
+            )}
+            <small>yufan@example.com</small>
+          </div>
+        </div>
+        <nav>
+          <button className={section === "profile" ? "is-active" : ""} onClick={() => setSection("profile")}><User />个人概览</button>
+          <button className={section === "membership" ? "is-active" : ""} onClick={() => setSection("membership")}><Crown />会员权益</button>
+          <button className={section === "settings" ? "is-active" : ""} onClick={() => setSection("settings")}><SlidersHorizontal />助手设置</button>
+        </nav>
+        <button className="logout" onClick={onLogout}><SignOut />退出登录</button>
+      </aside>
+      <section className="profile-content">{section === "profile" && <Overview />}{section === "membership" && <Membership />}{section === "settings" && <Settings teacher={teacher} speed={speed} level={level} onSettingsChange={onSettingsChange} />}</section>
+    </main>
   );
 }
 
@@ -1314,6 +1371,7 @@ export function App() {
   const [level, setLevel] = useState("");
   const [conversationSpeed, setConversationSpeed] = useState("自然");
   const [teacher, setTeacher] = useState(teachers[0]);
+  const [nickname, setNickname] = useState(() => window.localStorage.getItem("unispeaking.nickname") || "Yufan");
   const [page, setPage] = useState(initialRoute.page);
   const [sceneTitle, setSceneTitle] = useState("咖啡店点单");
   const [training, setTraining] = useState(initialRoute.training);
@@ -1358,6 +1416,10 @@ export function App() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, [initialRoute]);
 
+  useEffect(() => {
+    window.localStorage.setItem("unispeaking.nickname", nickname);
+  }, [nickname]);
+
   const goSplash = () => navigate(paths.root);
   const goAuth = (mode) => navigate(mode === "login" ? paths.auth.login : paths.auth.signup);
   const goLevel = () => navigate(paths.auth.level, { authMode });
@@ -1374,7 +1436,7 @@ export function App() {
   const openCompletedAssetDetail = () => navigate(paths.assets.latest, { assetView: "detail", authMode });
 
   if (flow === "splash") return <Splash onStart={() => goAuth("signup")} onLogin={() => goAuth("login")} />;
-  if (flow === "auth") return <Auth mode={authMode} onBack={goSplash} onSuccess={goLevel} />;
+  if (flow === "auth") return <Auth mode={authMode} nickname={nickname} onNicknameChange={setNickname} onBack={goSplash} onSuccess={goLevel} />;
   if (flow === "level") return <LevelSetup selected={level} onSelect={setLevel} onNext={goTeacher} />;
   if (flow === "teacher") return <TeacherSetup selectedId={teacher.id} onSelect={(id) => setTeacher(teachers.find((item) => item.id === id))} onFinish={enterApp} />;
   let content;
@@ -1386,6 +1448,6 @@ export function App() {
   else if (page === "ielts-assets") content = <IeltsAssets route={ieltsRoute} onNavigate={navigateIelts} onBackToAssets={() => setMainPage("assets")} onInterviewAssets={() => setMainPage("interview-assets")} onTraining={() => navigateIelts(paths.ielts.root)} />;
   else if (page === "interview") content = <InterviewTrainingCenter route={interviewRoute} onNavigate={navigateInterview} onExit={() => setMainPage("scenes")} onAssets={() => navigateInterview(paths.interview.assets.root)} />;
   else if (page === "interview-assets") content = <InterviewAssets route={interviewRoute} onNavigate={navigateInterview} onBackToAssets={() => setMainPage("assets")} onIeltsAssets={() => setMainPage("ielts-assets")} onTraining={() => navigateInterview(paths.interview.root)} />;
-  else content = <Profile section={page} setSection={setMainPage} teacher={teacher} speed={conversationSpeed} level={level} onSettingsChange={(settings) => { setConversationSpeed(settings.speed); setLevel(settings.level); setTeacher(settings.teacher); }} onLogout={goSplash} />;
+  else content = <Profile section={page} setSection={setMainPage} teacher={teacher} speed={conversationSpeed} level={level} nickname={nickname} onNicknameChange={setNickname} onSettingsChange={(settings) => { setConversationSpeed(settings.speed); setLevel(settings.level); setTeacher(settings.teacher); }} onLogout={goSplash} />;
   return <AppShell page={page} setPage={setMainPage} teacher={teacher}>{content}{paywall && <Paywall title={paywall} onClose={() => setPaywall(null)} onMembership={() => { setPaywall(null); setMainPage("membership"); }} />}</AppShell>;
 }
