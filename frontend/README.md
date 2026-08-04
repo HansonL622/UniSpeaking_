@@ -1,185 +1,41 @@
-# UniSpeaking
+# UniSpeaking Frontends
 
-UniSpeaking 是一个 AI 英语口语陪练产品。目前仓库中的前端界面仍在按模块持续设计、修改与定稿。
+The Web and mobile applications are separate projects that share product
+language and interaction rules but do not share source code.
 
-## 当前进度
-
-当前版本仅代表 **自由对话模块** 的前端定稿，不代表整个产品的最终版本。
-
-| 模块 | 状态 |
-| --- | --- |
-| 自由对话 | 已定稿并推送 |
-| 场景广场 | 待修改、定稿并推送 |
-| 学习资产 | 待修改、定稿并推送 |
-| 个人主页 | 待修改、定稿并推送 |
-
-后续将按照“场景广场 → 学习资产 → 个人主页”的顺序继续完成各模块，并在每个模块定稿后依次提交和推送更新。
-
-## 前端目录
-
-当前前端原型位于 `unispeaking-ui-demo/`。
-
-## 本地运行
-
-建议使用 Node.js 20 或更高版本。
-
-```bash
-cd unispeaking-ui-demo
-npm install
-npm run dev
+```text
+frontend/
+├── web/     React 19 + Vite Web application
+└── mobile/  React Native + Expo Router mobile application
 ```
 
-生产构建检查：
+## Web
+
+The Web application is the approved desktop interaction and visual reference.
+It includes free conversation, scenario training, IELTS, English interview,
+learning assets, profile, and membership prototype flows.
 
 ```bash
+cd frontend/web
+npm install
+npm run dev
 npm run build
 ```
 
-主要技术依赖：React 19、Vite 6、Phosphor Icons。当前项目是 JavaScript + JSX，尚未引入 TypeScript。
+## Mobile
 
-## 代码结构
+The mobile application adapts the approved Web information architecture for a
+phone-sized interface. It uses React Native, TypeScript, Expo SDK 57, and Expo
+Router. Mobile navigation and layouts are implemented independently rather than
+scaling down the desktop page.
 
-```text
-unispeaking-ui-demo/
-├── public/
-│   ├── brand/           # UniSpeaking 品牌图形与字标
-│   └── teachers/        # 六位 AI 老师的静态透明底头像
-├── src/
-│   ├── App.jsx          # 当前全部页面、组件和页面状态流
-│   ├── data.js          # 老师、等级、场景、学习资产和会员方案 Mock 数据
-│   ├── main.jsx         # React 应用入口
-│   └── styles.css       # 全局样式及交互动效
-├── index.html
-├── package.json
-└── vite.config.mjs
+```bash
+cd frontend/mobile
+npm install
+npx tsc --noEmit
+npm run web
 ```
 
-当前为了快速确认 UI，页面和业务状态集中在 `App.jsx` 中。正式合并时建议按业务域拆分为 `auth`、`onboarding`、`conversation`、`scenes`、`assets`、`profile` 等模块，并单独建立路由、API Client、状态管理与数据类型层。
-
-## 当前前端状态流
-
-应用当前没有使用 React Router。顶层 `App` 通过本地 React state 切换以下流程：
-
-```text
-启动页 → 注册/登录 → 邮箱验证 → 英语水平选择 → AI 老师选择 → 应用主界面
-```
-
-应用主界面内包括：
-
-- 自由对话；
-- 场景广场及“学 → 读 → 说”训练流程；
-- 训练结果和学习资产；
-- 个人概览、会员权益与助手设置。
-
-刷新页面后，大部分 state 会恢复为默认值。当前没有接入 URL 路由、Local Storage、服务端 Session 或数据库。
-
-开发和视觉检查可使用以下查询参数直接打开指定界面：
-
-| 地址参数 | 界面 |
-| --- | --- |
-| `?preview=teacher` | AI 老师选择 |
-| `?preview=conversation` | 自由对话 |
-| `?preview=scenes` | 场景广场 |
-| `?preview=training` | 场景训练 |
-| `?preview=result` | 训练结果 |
-| `?preview=assets` | 学习资产 |
-| `?preview=profile` | 个人概览 |
-| `?preview=membership` | 会员权益 |
-| `?preview=settings` | 助手设置 |
-
-这些参数仅用于前端预览，不应作为正式路由方案。
-
-## 已定稿的自由对话模块
-
-自由对话模块目前已完成前端视觉和交互定稿，包括：
-
-- 待机界面、开始/结束对话状态；
-- AI 老师、英语水平和对话语速设置；
-- 有字幕与无字幕两种对话布局；
-- 麦克风开关、字幕开关、结束对话控制；
-- 字幕翻译展开/收起；
-- 字幕自动跟随最新内容，并允许用户向上滚动查看历史；
-- 对话开始后显示声纹和时间；
-- 侧边栏折叠、悬浮展开及导航动效。
-
-当前声纹会通过浏览器 `navigator.mediaDevices.getUserMedia()` 读取麦克风音量；若权限不可用则回退为 CSS 动画。组件卸载时会停止媒体轨道并关闭 `AudioContext`。除此之外，自由对话目前没有连接语音识别、实时模型、TTS 或后端会话服务。
-
-产品要求自由对话内容不保存。后端接入时仍可建立临时会话以承载实时通信和用量统计，但不要把自由对话的音频、逐字稿或消息历史写入长期学习资产；如因安全、风控或故障排查必须保留数据，需要先与产品确认保存范围和生命周期。
-
-## 当前 Mock 与后端待接能力
-
-| 功能 | 当前实现 | 后端合并时需要处理 |
-| --- | --- | --- |
-| 注册、登录、退出 | 仅切换前端状态，表单不会提交 | 用户认证、Token/Session、错误状态、邮箱验证与重发 |
-| 用户资料 | 固定为 `Yufan / yufan@example.com` | 当前用户资料查询与更新 |
-| 英语水平和 AI 老师 | 保存在内存 state，刷新丢失 | 用户偏好读取、保存及枚举映射 |
-| 对话语速 | 保存在内存 state | 持久化设置，并映射到 TTS/模型参数 |
-| 自由对话 | 三条固定字幕，时间固定为 `02:18` | 临时会话创建、实时 ASR/LLM/TTS、消息事件、计时与结束会话 |
-| 字幕翻译 | 使用固定中文文案 | 按消息 ID 请求或接收翻译结果 |
-| 麦克风按钮 | 只控制声纹是否读取麦克风 | 同步控制采集、上行音频和实时连接状态 |
-| 音频播放按钮 | 只切换图标状态 | TTS 音频 URL/流、播放状态和失败重试 |
-| 场景生成 | `setTimeout` 后返回固定结构 | 场景生成接口、任务状态及错误处理 |
-| 推荐场景 | `data.js` 静态数据 | 每日推荐列表接口 |
-| 学/读/说训练 | 本地步骤切换，朗读分数固定 | 训练内容、ASR、发音评分、模拟对话与进度保存 |
-| 训练结果 | 固定分数和反馈 | 结果生成、完成/未完成状态及报告查询 |
-| 学习资产 | 静态列表，本地模拟删除 | 列表、详情、删除、复练入口及分页 |
-| 个人概览 | 固定统计、日历和成就 | 学习统计、日历、连续天数及成就接口 |
-| 会员与额度 | 固定套餐和用量 | 套餐、订阅状态、配额校验和用量接口 |
-| 支付 | 明确标记为 Mock，不会扣款 | 创建订单、支付回调、订阅更新与幂等处理 |
-| 修改密码/删除账户 | 只有按钮 | 安全验证、密码修改、账户注销及二次确认 |
-
-## 建议的后端接口边界
-
-下面是为了方便联调建议的资源边界，不是已经锁定的最终接口路径；字段和鉴权方式需要前后端共同确认。
-
-| 资源 | 建议能力 |
-| --- | --- |
-| `/auth/*` | 注册、登录、退出、刷新会话、邮箱验证、重发验证邮件 |
-| `/me` | 当前用户资料、学习偏好、默认老师和英语等级 |
-| `/teachers` | 老师列表、口音、人物设定、可用声音标识 |
-| `/conversation-sessions` | 创建/结束临时自由对话、返回实时连接凭证和用量 |
-| 实时通道 | 双向音频、ASR partial/final、用户消息、AI 消息、TTS 状态、错误与结束事件 |
-| `/translations` | 按消息 ID 获取字幕翻译；也可由实时通道推送 |
-| `/scenes` | 推荐场景、场景详情、自定义场景生成 |
-| `/training-sessions` | 创建训练、读取步骤内容、提交朗读、模拟对话、结束或中断训练 |
-| `/training-results` | 评分、维度反馈、纠错建议和完成状态 |
-| `/learning-assets` | 学习资产列表、详情、删除和复练 |
-| `/stats` | 学习时长、连续天数、日历和成就 |
-| `/plans`、`/subscription`、`/usage` | 套餐、订阅和配额 |
-| `/payments` | 订单创建、支付状态和服务端回调 |
-
-自由对话建议使用 WebSocket 或 WebRTC 承载实时事件。无论采用哪种方式，建议统一定义以下客户端状态：`idle`、`connecting`、`listening`、`thinking`、`speaking`、`reconnecting`、`ended`、`error`，避免前端仅使用当前的 `inCall` 布尔值判断所有状态。
-
-## 建议优先确认的数据契约
-
-合并前建议前后端优先锁定以下稳定 ID 和枚举，避免直接传递中文展示文案：
-
-- 老师：`clara`、`james`、`leo`、`david`、`emily`、`arthur`；
-- 英语等级：`starter`、`basic`、`independent`、`fluent`；
-- 对话语速：建议改为稳定枚举，例如 `slow`、`moderate`、`natural`、`fast`；
-- 训练阶段：`learn`、`read`、`speak`；
-- 训练状态：建议至少包含 `in_progress`、`completed`、`abandoned`；
-- 消息字段：建议至少包含 `id`、`sessionId`、`speaker`、`text`、`translation`、`status`、`createdAt`；
-- 时间字段统一使用 ISO 8601；分数需明确量纲，例如百分制或 IELTS band score。
-
-建议所有异步接口统一返回可识别的错误码；前端需要据此补充加载、空数据、断网、权限拒绝、配额不足、服务超时和重试状态。
-
-## 合并注意事项
-
-1. 当前 `App.jsx` 是 UI 原型，不建议后端同事直接在组件内分散添加 `fetch`。请先建立统一的 API Client 和环境变量配置。
-2. 当前没有正式路由。若合并到已有 React/Next.js 项目，应将各页面映射到现有路由体系，不要保留 `preview` 参数作为生产入口。
-3. `public/teachers/` 下的文件名与老师 `id` 一致，当前头像为静态透明底 PNG。请保持现有裁切和展示尺寸，不要由后端返回会改变比例的临时图片。
-4. 品牌资源位于 `public/brand/`。如果宿主项目设置了非根路径部署，需要调整当前以 `/brand/...` 和 `/teachers/...` 开头的绝对资源路径。
-5. 浏览器麦克风需要 HTTPS 或 localhost 安全上下文，并需要用户授权。生产环境必须处理拒绝授权、设备缺失、设备切换和连接中断。
-6. 当前没有 `.env` 文件，也没有开发代理配置。接入后端时应补充 `.env.example`，只公开允许进入前端构建的变量，禁止提交密钥。
-7. 自由对话的计时、字幕和会话内容当前都是演示值。联调时应由服务端会话与实时事件驱动，不要继续依赖前端固定数组。
-8. 后续三个模块仍会继续修改。后端合并时，建议先稳定自由对话的数据契约，同时保持场景广场、学习资产和个人主页组件边界可替换。
-
-## 当前已知限制
-
-- 仅针对桌面端界面进行主要设计与验证；移动端尚未定稿。
-- 页面刷新会丢失所有演示状态。
-- 没有自动化单元测试或端到端测试配置。
-- 没有统一错误边界、请求 Loading、Toast 或全局网络状态处理。
-- 没有无障碍完整审计和多语言架构。
-- 场景广场、学习资产与个人主页仍是待定稿模块，相关 UI 和数据结构可能继续调整。
+The mobile IELTS, English interview, scoring, recording, and conversation data
+are currently frontend prototypes unless otherwise documented. Read
+`mobile/HANDOFF.md` before connecting backend services.

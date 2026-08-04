@@ -1,3 +1,10 @@
+# OS and temporary files
+.DS_Store
+*.tmp
+*.temp
+~$*
+
+# Java and backend builds
 HELP.md
 target/
 backend/*/target/
@@ -6,7 +13,7 @@ backend/*/.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 
-### STS ###
+# IDE metadata
 .apt_generated
 .classpath
 .factorypath
@@ -14,37 +21,56 @@ backend/*/.mvn/wrapper/maven-wrapper.jar
 .settings
 .springBeans
 .sts4-cache
-
-### IntelliJ IDEA ###
 .idea
 *.iws
 *.iml
 *.ipr
-
-### NetBeans ###
 /nbproject/private/
 /nbbuild/
 /dist/
 /nbdist/
 /.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
+.vscode/
 
-### Go ###
-bin/
-coverage.out
-*.test
-
-### Frontend ###
+# Frontend builds and local tooling
 node_modules/
 dist/
+web-build/
+.expo/
 .vite/
+.npm-cache/
+.playwright-cli/
+*.tsbuildinfo
 
-### Env ###
+# Native generated projects and credentials
+android/
+ios/
+.kotlin/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Environment files
 .env
 *.local
 !deploy/env/.env.example
 
-### VS Code ###
-.vscode/
+# Historical local workspaces and QA output
+/ui/
+/milestone1/
+/milestone2/
+/outputs/
+/tools/
+/logo.jpg
+/*.png
+frontend/web/tmp/
+frontend/web/output/
+frontend/web/qa-evidence/
+frontend/web/.npmrc
+frontend/web/AGENTS.md
+frontend/web/design-qa.md
+frontend/web/public/logo.jpg
+frontend/web/public/brand/unispeaking-mark.png
+frontend/web/public/teachers/*-blink.png
