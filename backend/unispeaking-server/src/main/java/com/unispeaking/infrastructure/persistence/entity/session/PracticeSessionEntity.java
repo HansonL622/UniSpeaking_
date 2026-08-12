@@ -26,7 +26,6 @@ public class PracticeSessionEntity {
 	private String status;
 	private OffsetDateTime startedAt;
 	private OffsetDateTime endedAt;
-	private String providerSessionId;
 	private OffsetDateTime createdAt;
 	private OffsetDateTime updatedAt;
 }

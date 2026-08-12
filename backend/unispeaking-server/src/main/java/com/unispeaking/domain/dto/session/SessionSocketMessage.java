@@ -4,6 +4,5 @@ public record SessionSocketMessage(
 		String type,
 		String sessionId,
 		Message message,
-		String stopTime,
-		String providerSessionId) {
+		String stopTime) {
 }

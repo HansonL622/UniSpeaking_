@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
-import com.unispeaking.admin.auth.security.SessionAuthenticationFilter;
 
 class SecurityConfigTest {
 
@@ -29,11 +28,5 @@ class SecurityConfigTest {
 		request.addHeader("Authorization", "Bearer header-token");
 
 		assertEquals("header-token", securityConfig.bearerTokenResolver().resolve(request));
-	}
-
-	@Test
-	void adminSessionCookieIsScopedToAdminRoutes() {
-		assertEquals(true, SessionAuthenticationFilter.isAdminRoute("/api/admin/auth/me"));
-		assertEquals(false, SessionAuthenticationFilter.isAdminRoute("/api/user-preferences"));
 	}
 }

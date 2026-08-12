@@ -1,6 +1,5 @@
 package com.unispeaking.infrastructure.config;
 
-import com.unispeaking.admin.auth.security.SessionAuthenticationFilter;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.OctetSequenceKey;
@@ -14,7 +13,6 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -29,7 +27,6 @@ import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
 import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import org.springframework.util.StringUtils;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -41,26 +38,18 @@ public class SecurityConfig {
 	@Bean
 	SecurityFilterChain securityFilterChain(
 			HttpSecurity http,
-			BearerTokenResolver bearerTokenResolver,
-			SessionAuthenticationFilter adminSessionAuthenticationFilter) throws Exception {
+			BearerTokenResolver bearerTokenResolver) throws Exception {
 		http
 				.csrf(csrf -> csrf.disable())
 				.cors(Customizer.withDefaults())
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(authorize -> authorize
 						.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-						.requestMatchers("/error").permitAll()
-						.requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/email/**", "/api/auth/logout",
-								"/api/admin/auth/login", "/api/admin/auth/logout", "/actuator/health").permitAll()
-						.requestMatchers(HttpMethod.PATCH, "/api/admin/users/*/entitlement")
-						.hasAnyRole("SUPER_ADMIN", "OPERATIONS")
-						.requestMatchers("/api/admin/**")
-						.hasAnyRole("SUPER_ADMIN", "OPERATIONS", "AUDITOR")
+						.requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
 						.anyRequest().authenticated())
 				.oauth2ResourceServer(resourceServer -> resourceServer
 						.bearerTokenResolver(bearerTokenResolver)
 						.jwt(Customizer.withDefaults()));
-		http.addFilterBefore(adminSessionAuthenticationFilter, AnonymousAuthenticationFilter.class);
 		return http.build();
 	}
 
@@ -81,7 +70,6 @@ public class SecurityConfig {
 	}
 
 	@Bean
-	@Primary
 	PasswordEncoder passwordEncoder() {
 		return new BCryptPasswordEncoder();
 	}
