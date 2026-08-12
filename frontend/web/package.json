@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "check:feedback-invitation": "node scripts/check-feedback-invitation.mjs",
     "check:realtime-events": "node scripts/check-realtime-events.mjs",
     "check:routes": "node scripts/check-routes.mjs",
     "generate:teacher-previews": "node scripts/generate-teacher-previews.mjs",
